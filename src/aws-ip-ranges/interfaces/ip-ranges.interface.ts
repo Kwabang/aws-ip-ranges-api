@@ -57,3 +57,18 @@ export interface AllServicesIpRanges {
   lastUpdated: string;
   services: Record<string, Omit<ServiceIpRanges, 'service'>>;
 }
+
+// IP 검색 결과 매치 항목
+export interface IpSearchMatch {
+  service: string;
+  region: string;
+  prefix: string;
+  network_border_group: string;
+}
+
+// IP 검색 응답
+export interface IpSearchResult {
+  ip: string;
+  found: boolean;
+  matches: IpSearchMatch[];
+}

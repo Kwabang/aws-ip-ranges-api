@@ -8,6 +8,8 @@ import {
   ServicesListResponse,
   RegionsListResponse,
   AllServicesIpRanges,
+  IpSearchResult,
+  IpSearchMatch,
 } from './interfaces/ip-ranges.interface';
 
 @Injectable()
@@ -260,6 +262,119 @@ export class IpRangesService implements OnModuleInit {
       lastUpdated: this.lastUpdated?.toISOString() || '',
       services,
     };
+  }
+
+  /**
+   * IP 주소로 서비스 및 리전 검색
+   */
+  searchByIp(ip: string): IpSearchResult {
+    const matches: IpSearchMatch[] = [];
+
+    if (!this.ipRangesData) {
+      return { ip, found: false, matches };
+    }
+
+    const isIPv6 = ip.includes(':');
+
+    if (isIPv6) {
+      // IPv6 검색
+      if (this.ipRangesData.ipv6_prefixes) {
+        for (const prefix of this.ipRangesData.ipv6_prefixes) {
+          if (this.isIpv6InCidr(ip, prefix.ipv6_prefix)) {
+            matches.push({
+              service: prefix.service,
+              region: prefix.region,
+              prefix: prefix.ipv6_prefix,
+              network_border_group: prefix.network_border_group,
+            });
+          }
+        }
+      }
+    } else {
+      // IPv4 검색
+      for (const prefix of this.ipRangesData.prefixes) {
+        if (this.isIpv4InCidr(ip, prefix.ip_prefix)) {
+          matches.push({
+            service: prefix.service,
+            region: prefix.region,
+            prefix: prefix.ip_prefix,
+            network_border_group: prefix.network_border_group,
+          });
+        }
+      }
+    }
+
+    return {
+      ip,
+      found: matches.length > 0,
+      matches,
+    };
+  }
+
+  /**
+   * IPv4가 CIDR 범위 내에 있는지 확인
+   */
+  private isIpv4InCidr(ip: string, cidr: string): boolean {
+    const [range, bits] = cidr.split('/');
+    const mask = ~(2 ** (32 - parseInt(bits, 10)) - 1);
+
+    const ipNum = this.ipv4ToNumber(ip);
+    const rangeNum = this.ipv4ToNumber(range);
+
+    return (ipNum & mask) === (rangeNum & mask);
+  }
+
+  /**
+   * IPv4 문자열을 숫자로 변환
+   */
+  private ipv4ToNumber(ip: string): number {
+    const parts = ip.split('.').map((p) => parseInt(p, 10));
+    return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
+  }
+
+  /**
+   * IPv6가 CIDR 범위 내에 있는지 확인
+   */
+  private isIpv6InCidr(ip: string, cidr: string): boolean {
+    const [range, bits] = cidr.split('/');
+    const prefixBits = parseInt(bits, 10);
+
+    const ipExpanded = this.expandIpv6(ip);
+    const rangeExpanded = this.expandIpv6(range);
+
+    const ipBinary = this.ipv6ToBinary(ipExpanded);
+    const rangeBinary = this.ipv6ToBinary(rangeExpanded);
+
+    return ipBinary.substring(0, prefixBits) === rangeBinary.substring(0, prefixBits);
+  }
+
+  /**
+   * IPv6 주소 확장 (:: 압축 해제)
+   */
+  private expandIpv6(ip: string): string {
+    if (ip.includes('::')) {
+      const parts = ip.split('::');
+      const left = parts[0] ? parts[0].split(':') : [];
+      const right = parts[1] ? parts[1].split(':') : [];
+      const missing = 8 - left.length - right.length;
+      const middle = Array(missing).fill('0000');
+      const all = [...left, ...middle, ...right];
+      return all.map((p) => p.padStart(4, '0')).join(':');
+    }
+    return ip
+      .split(':')
+      .map((p) => p.padStart(4, '0'))
+      .join(':');
+  }
+
+  /**
+   * IPv6 주소를 이진수 문자열로 변환
+   */
+  private ipv6ToBinary(ip: string): string {
+    return ip
+      .split(':')
+      .map((hex) => parseInt(hex, 16).toString(2).padStart(16, '0'))
+      .join('');
   }
 
   /**

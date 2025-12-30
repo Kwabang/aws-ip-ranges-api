@@ -12,9 +12,10 @@ import type {
   ServicesListResponse,
   RegionsListResponse,
   AllServicesIpRanges,
+  IpSearchResult,
 } from './interfaces/ip-ranges.interface';
 
-@Controller('ip-ranges')
+@Controller('aws-ip-ranges')
 export class IpRangesController {
   constructor(private readonly ipRangesService: IpRangesService) {}
 
@@ -36,6 +37,21 @@ export class IpRangesController {
   getRegions(): RegionsListResponse {
     this.ensureDataLoaded();
     return this.ipRangesService.getRegions();
+  }
+
+  /**
+   * IP 주소로 서비스 및 리전 검색
+   * GET /ip-ranges/search?ip=52.94.76.1
+   */
+  @Get('search')
+  searchByIp(@Query('ip') ip: string): IpSearchResult {
+    this.ensureDataLoaded();
+
+    if (!ip) {
+      throw new NotFoundException('IP address is required. Use ?ip=<ip_address>');
+    }
+
+    return this.ipRangesService.searchByIp(ip);
   }
 
   /**

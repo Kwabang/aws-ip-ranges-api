@@ -23,7 +23,7 @@ npm run start:prod
 
 ### 서비스 목록 조회
 ```bash
-GET /ip-ranges/services
+GET /aws-ip-ranges/services
 ```
 
 **응답:**
@@ -37,7 +37,7 @@ GET /ip-ranges/services
 
 ### 리전 목록 조회
 ```bash
-GET /ip-ranges/regions
+GET /aws-ip-ranges/regions
 ```
 
 **응답:**
@@ -51,11 +51,11 @@ GET /ip-ranges/regions
 
 ### 특정 서비스 IP ranges 조회
 ```bash
-GET /ip-ranges/:service
-GET /ip-ranges/:service?region=ap-northeast-2
+GET /aws-ip-ranges/:service
+GET /aws-ip-ranges/:service?region=ap-northeast-2
 ```
 
-**예시:** `GET /ip-ranges/EC2?region=ap-northeast-2`
+**예시:** `GET /aws-ip-ranges/EC2?region=ap-northeast-2`
 ```json
 {
   "service": "EC2",
@@ -67,8 +67,35 @@ GET /ip-ranges/:service?region=ap-northeast-2
 
 ### 전체 서비스별 IP ranges 조회
 ```bash
-GET /ip-ranges
-GET /ip-ranges?region=us-east-1
+GET /aws-ip-ranges
+GET /aws-ip-ranges?region=us-east-1
+```
+
+### IP 주소 검색
+```bash
+GET /aws-ip-ranges/search?ip=3.34.0.1
+```
+
+**응답:**
+```json
+{
+  "ip": "3.34.0.1",
+  "found": true,
+  "matches": [
+    {
+      "service": "AMAZON",
+      "region": "ap-northeast-2",
+      "prefix": "3.34.0.0/15",
+      "network_border_group": "ap-northeast-2"
+    },
+    {
+      "service": "EC2",
+      "region": "ap-northeast-2",
+      "prefix": "3.34.0.0/15",
+      "network_border_group": "ap-northeast-2"
+    }
+  ]
+}
 ```
 
 ## 데이터 소스
